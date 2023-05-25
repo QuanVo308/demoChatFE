@@ -1,0 +1,12 @@
+.senderName{
+    color: #FAAB2B;
+    cursor: pointer;
+}
+
+.senderTag{
+    color: #178E3A;
+}
+
+.senderMessage{
+    color: white;
+}
