@@ -62,16 +62,16 @@ export default function Message(props) {
 
               return (
                 <>
-                  <span
-                    className={styles.senderMessage}
-                    
-                  >
-                    {message}
-                  </span>
+                  <span className={styles.senderMessage}>{message}</span>
                   {tagSet !== null && (
-                    <span className={styles.senderTag} onClick={(e) => {
-                      handleTag(e.currentTarget.textContent.slice(0, -1));
-                    }}>{tagSet[index]} </span>
+                    <span
+                      className={styles.senderTag}
+                      onClick={(e) => {
+                        handleTag(e.currentTarget.textContent.slice(0, -1));
+                      }}
+                    >
+                      {tagSet[index]}{" "}
+                    </span>
                   )}
                 </>
               );
