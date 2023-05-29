@@ -3,17 +3,14 @@ import styles from "./chatRoom.module.css";
 import React, { useEffect, useState } from "react";
 import Stack from "@mui/material/Stack";
 import Box from "@mui/material/Box";
-import TextField from "@mui/material/TextField";
 import SendIcon from "@mui/icons-material/Send";
 import Message from "../../components/ChatMessage/messageComponent";
 import PeopleIcon from "@mui/icons-material/People";
 import Typography from "@mui/material/Typography";
 
-const room = -1;
-
 const sampleMessage = {
   name: "Person 1",
-  message: "Message to Persion 2 and 3",
+  message: "[[Person 4]] send message to [[Persion 2]] and [[Person 3]]",
   tags: ["Person2", "Person3"],
 };
 
@@ -21,16 +18,17 @@ const ChatRoomPage = () => {
   const [senderName, setSenderName] = useState(null);
   const [senderMessage, setSenderMessage] = useState(null);
   const [senderRoom, setSenderRoom] = useState(null);
+  const [inputRoom, setInputRoom] = useState("");
   const [memeberQuantity, setMemeberQuantity] = useState(0);
   const [listMessage, setListMessage] = useState([]);
 
   useEffect(() => {
     function onConnect() {
-      console.log("connect");
+      // console.log("connect");
     }
 
     function onDisconnect() {
-      console.log("connect");
+      // console.log("disconnect");
     }
 
     function onRoomMessage(value) {
@@ -41,7 +39,7 @@ const ChatRoomPage = () => {
     }
 
     function onChangeMember(value) {
-      console.log(value.member);
+      // console.log(value.member);
       setMemeberQuantity(value.member);
     }
 
@@ -50,10 +48,10 @@ const ChatRoomPage = () => {
     socket.on("roomMessage", onRoomMessage);
     socket.on("changeMemeber", onChangeMember);
 
-    socket.emit("join", { room: "temp" }, (response) => {
+    socket.emit("join", { room: "all" }, (response) => {
       if (response === "success") {
-        setSenderRoom("temp");
-        console.log("it success");
+        setSenderRoom('"all"');
+        // console.log("it success");
       }
     });
 
@@ -63,10 +61,47 @@ const ChatRoomPage = () => {
       socket.off("roomMessage", onRoomMessage);
       socket.off("changeMemeber", onChangeMember);
     };
+    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, []);
 
   const handleMessageInput = (value) => {
-    console.log(value);
+    // console.log(value);
+    setSenderMessage(value);
+  };
+
+  const handleJoinRoom = () => {
+    if (inputRoom !== "") {
+      socket.emit("join", { room: inputRoom }, (response) => {
+        if (response === "success") {
+          setSenderRoom(`"${inputRoom}"`);
+          console.log("join success");
+        }
+      });
+    }
+  };
+
+  const handleLeaveRoom = () => {
+    if (senderRoom !== null) {
+      socket.emit("leave", { room: senderRoom }, (response) => {
+        if (response === "success") {
+          setSenderRoom(null);
+          console.log("leave success");
+        }
+      });
+    }
+  };
+  const handleNameInput = (name) => {
+    setSenderName(name);
+    // console.log(name);
+  };
+
+  const handleRoomInput = (room) => {
+    // console.log(room);
+    setInputRoom(room);
+  };
+
+  const handleSendMessage = () => {
+    console.log(senderMessage);
   };
 
   return (
@@ -112,8 +147,9 @@ const ChatRoomPage = () => {
             <input
               className={styles.nameInput}
               placeholder="Tên"
+              value={senderName}
               onChange={(e) => {
-                handleMessageInput(e.target.value);
+                handleNameInput(e.target.value);
               }}
             />
             <Box
@@ -125,6 +161,7 @@ const ChatRoomPage = () => {
               <input
                 className={styles.messageInput}
                 placeholder="Tin nhắn"
+                value={senderMessage}
                 onChange={(e) => {
                   handleMessageInput(e.target.value);
                 }}
@@ -138,22 +175,31 @@ const ChatRoomPage = () => {
                 marginBottom: -0.4,
                 cursor: "pointer",
               }}
+              onClick={() => {
+                handleSendMessage();
+              }}
             />
-            {room === -1 ? (
+            {senderRoom === null ? (
               <>
                 <Box width="5%" marginRight={"10px"} marginLeft={"10px"}>
                   <input
                     className={styles.messageInput}
                     placeholder="Phòng"
                     onChange={(e) => {
-                      handleMessageInput(e.target.value);
+                      handleRoomInput(e.target.value);
                     }}
                   />
                 </Box>
-                <button>Join room</button>
+                <button
+                  onClick={() => {
+                    handleJoinRoom();
+                  }}
+                >
+                  Join room
+                </button>
               </>
             ) : (
-              <button>Leave room {room}</button>
+              <button onClick={handleLeaveRoom}>Leave room {senderRoom}</button>
             )}
           </Stack>
         </Stack>
