@@ -15,17 +15,27 @@ export default function Message(props) {
 
   const getMessageSplit = () => {
     var message = props.data.message;
-    const tags = message.match(/\[\[(.*?)\]\]/g);
-    const extractedTags = tags.map((match) => {
-      return match.slice(2, -2);
-    });
-    setTags(extractedTags);
+    const tags = message?.match(/\[\[(.*?)\]\]/g);
 
-    for (var tag of tags) {
-      message = message.replace(tag, "$||");
+    if (tags !== null) {
+      const extractedTags = tags?.map((match) => {
+        return match.slice(2, -2);
+      });
+      setTags(extractedTags);
+      // console.log(tags);
+      for (var tag of tags) {
+        message = message.replace(tag, "$||");
+      }
+    } else {
+      setTags(null);
     }
 
     setMessageSet(message.split("$||"));
+  };
+
+  const handleTag = (e) => {
+    console.log(e);
+    props.senderMessageRef.current.value += `[[${e}]]`;
   };
 
   return (
@@ -38,15 +48,31 @@ export default function Message(props) {
         />
         <Box paddingLeft={"10px"}>
           <>
-            <span className={styles.senderName}>{props.data.name}: </span>
+            <span
+              className={styles.senderName}
+              onClick={(e) => {
+                handleTag(e.currentTarget.textContent.slice(0, -2));
+              }}
+            >
+              {props.data.sender}:{" "}
+            </span>
 
             {messageSet?.map((message, index) => {
               // console.log(messageSet);
 
               return (
                 <>
-                  <span className={styles.senderMessage}>{message}</span>
-                  <span className={styles.senderTag}>{tagSet[index]} </span>
+                  <span
+                    className={styles.senderMessage}
+                    
+                  >
+                    {message}
+                  </span>
+                  {tagSet !== null && (
+                    <span className={styles.senderTag} onClick={(e) => {
+                      handleTag(e.currentTarget.textContent.slice(0, -1));
+                    }}>{tagSet[index]} </span>
+                  )}
                 </>
               );
             })}

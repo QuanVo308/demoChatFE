@@ -1,6 +1,6 @@
 import { socket } from "../../services/socket";
 import styles from "./chatRoom.module.css";
-import React, { useEffect, useState } from "react";
+import React, { useEffect, useState, useRef } from "react";
 import Stack from "@mui/material/Stack";
 import Box from "@mui/material/Box";
 import SendIcon from "@mui/icons-material/Send";
@@ -9,18 +9,19 @@ import PeopleIcon from "@mui/icons-material/People";
 import Typography from "@mui/material/Typography";
 
 const sampleMessage = {
-  name: "Person 1",
+  sender: "Person 1",
   message: "[[Person 4]] send message to [[Persion 2]] and [[Person 3]]",
-  tags: ["Person2", "Person3"],
+  member: 2,
+  room: "1",
 };
 
 const ChatRoomPage = () => {
-  const [senderName, setSenderName] = useState(null);
-  const [senderMessage, setSenderMessage] = useState(null);
   const [senderRoom, setSenderRoom] = useState(null);
   const [inputRoom, setInputRoom] = useState("");
   const [memeberQuantity, setMemeberQuantity] = useState(0);
   const [listMessage, setListMessage] = useState([]);
+  const senderMessageRef = useRef(null);
+  const senderNameRef = useRef(null);
 
   useEffect(() => {
     function onConnect() {
@@ -32,10 +33,8 @@ const ChatRoomPage = () => {
     }
 
     function onRoomMessage(value) {
-      if (senderRoom !== null) {
-        setListMessage((prev) => [...prev, value]);
-      }
       console.log("check", value);
+      setListMessage((prev) => [...prev, value]);
     }
 
     function onChangeMember(value) {
@@ -48,12 +47,12 @@ const ChatRoomPage = () => {
     socket.on("roomMessage", onRoomMessage);
     socket.on("changeMemeber", onChangeMember);
 
-    socket.emit("join", { room: "all" }, (response) => {
-      if (response === "success") {
-        setSenderRoom('"all"');
-        // console.log("it success");
-      }
-    });
+    // socket.emit("join", { room: "all" }, (response) => {
+    //   if (response === "success") {
+    //     setSenderRoom('"all"');
+    //     // console.log("it success");
+    //   }
+    // });
 
     return () => {
       socket.off("connect", onConnect);
@@ -64,16 +63,16 @@ const ChatRoomPage = () => {
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, []);
 
-  const handleMessageInput = (value) => {
-    // console.log(value);
-    setSenderMessage(value);
-  };
+  // const handleMessageInput = (e) => {
+  //   // console.log(value);
+  //   setSenderMessage(e.target.value);
+  // };
 
   const handleJoinRoom = () => {
     if (inputRoom !== "") {
       socket.emit("join", { room: inputRoom }, (response) => {
         if (response === "success") {
-          setSenderRoom(`"${inputRoom}"`);
+          setSenderRoom(`${inputRoom}`);
           console.log("join success");
         }
       });
@@ -90,18 +89,57 @@ const ChatRoomPage = () => {
       });
     }
   };
-  const handleNameInput = (name) => {
-    setSenderName(name);
-    // console.log(name);
-  };
+  // const handleNameInput = (name) => {
+  //   setSenderName(name);
+  //   // console.log(name);
+  // };
 
   const handleRoomInput = (room) => {
     // console.log(room);
     setInputRoom(room);
   };
 
-  const handleSendMessage = () => {
-    console.log(senderMessage);
+  const handleSendMessage = (e) => {
+    // console.log(inputRef.current.value)
+
+    socket.emit(
+      "message",
+      {
+        room: `${senderRoom}`,
+        name: `${senderNameRef.current.value}`,
+        message: `${senderMessageRef.current.value}`,
+      },
+      (response) => {
+        if (response === "success") {
+          console.log("send success");
+          senderMessageRef.current.value = null;
+        } else {
+          handleJoinRoom();
+          socket.emit("message", {
+            room: `${senderRoom}`,
+            name: `${senderNameRef.current.value}`,
+            message: `${senderMessageRef.current.value}`,
+          });
+        }
+      }
+    );
+  };
+
+  const handleEnterMessage = (e) => {
+    if (e.key === "Enter") {
+      if (
+        senderMessageRef.current.value !== null &&
+        senderNameRef.current.value !== null
+      ) {
+        handleSendMessage(e);
+      }
+    }
+  };
+
+  const handleEnterRoom = (e) => {
+    if (e.key === "Enter") {
+      handleJoinRoom();
+    }
   };
 
   return (
@@ -139,18 +177,23 @@ const ChatRoomPage = () => {
           sx={{ height: "96vh", display: "flex", justifyContent: "flex-end" }}
         >
           <Box margin="10px">
-            <Stack>
-              <Message data={sampleMessage}></Message>
+            <Stack spacing={1}>
+              {listMessage?.map((messageData) => {
+                // console.log(messageData);
+                return <Message data={messageData} senderMessageRef={senderMessageRef}></Message>;
+              })}
+              .
             </Stack>
           </Box>
           <Stack direction="row">
             <input
               className={styles.nameInput}
               placeholder="Tên"
-              value={senderName}
-              onChange={(e) => {
-                handleNameInput(e.target.value);
-              }}
+              ref={senderNameRef}
+              // value={senderNameRef.current.value}
+              // onChange={(e) => {
+              //   handleNameInput(e.target.value);
+              // }}
             />
             <Box
               width="80%"
@@ -161,9 +204,13 @@ const ChatRoomPage = () => {
               <input
                 className={styles.messageInput}
                 placeholder="Tin nhắn"
-                value={senderMessage}
-                onChange={(e) => {
-                  handleMessageInput(e.target.value);
+                ref={senderMessageRef}
+                // value={senderMessage}
+                // onChange={(e) => {
+                //   handleMessageInput(e);
+                // }}
+                onKeyDown={(e) => {
+                  handleEnterMessage(e);
                 }}
               />
             </Box>
@@ -176,7 +223,9 @@ const ChatRoomPage = () => {
                 cursor: "pointer",
               }}
               onClick={() => {
-                handleSendMessage();
+                if (senderMessageRef.current.value !== null) {
+                  handleSendMessage();
+                }
               }}
             />
             {senderRoom === null ? (
@@ -187,6 +236,9 @@ const ChatRoomPage = () => {
                     placeholder="Phòng"
                     onChange={(e) => {
                       handleRoomInput(e.target.value);
+                    }}
+                    onKeyDown={(e) => {
+                      handleEnterRoom(e);
                     }}
                   />
                 </Box>
@@ -199,7 +251,9 @@ const ChatRoomPage = () => {
                 </button>
               </>
             ) : (
-              <button onClick={handleLeaveRoom}>Leave room {senderRoom}</button>
+              <button onClick={handleLeaveRoom}>
+                Leave room "{senderRoom}"
+              </button>
             )}
           </Stack>
         </Stack>
