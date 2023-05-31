@@ -1,4 +1,4 @@
-import { socket } from "../../services/socketIO";
+// import { socket } from "../../services/socketIO";
 import styles from "./chatRoom.module.css";
 import React, { useEffect, useState, useRef } from "react";
 import Stack from "@mui/material/Stack";
@@ -7,133 +7,50 @@ import SendIcon from "@mui/icons-material/Send";
 import Message from "../../components/ChatMessage/messageComponent";
 import PeopleIcon from "@mui/icons-material/People";
 import Typography from "@mui/material/Typography";
+import { WebSocketService } from "../../services/websocket.service";
 
-const ws = new WebSocket('ws://localhost:8090');
-
-
-const sampleMessage = {
-  sender: "Person 1",
-  message: "[[Person 4]] send message to [[Persion 2]] and [[Person 3]]",
-  member: 2,
-  room: "1",
-};
+// websocketService.init("ws://localhost:8080")
+var websocketService;
 
 const ChatRoomPage = () => {
   const [senderRoom, setSenderRoom] = useState(null);
-  const [inputRoom, setInputRoom] = useState("");
   const [memeberQuantity, setMemeberQuantity] = useState(0);
   const [listMessage, setListMessage] = useState([]);
   const senderMessageRef = useRef(null);
   const senderNameRef = useRef(null);
+  const inputRoom = useRef(null);
 
   useEffect(() => {
-    function onConnect() {
-      // console.log("connect");
-    }
-
-    function onDisconnect() {
-      // console.log("disconnect");
-    }
-
-    function onRoomMessage(value) {
-      console.log("check", value);
-      setListMessage((prev) => [...prev, value]);
-    }
-
-    function onChangeMember(value) {
-      // console.log(value.member);
-      setMemeberQuantity(value.member);
-    }
-
-    socket.on("connect", onConnect);
-    socket.on("disconnect", onDisconnect);
-    socket.on("roomMessage", onRoomMessage);
-    socket.on("changeMemeber", onChangeMember);
-
-    ws.addEventListener("message", (event) => {
-      console.log("Message from server ", event.data);
-    });
-
-    // socket.emit("join", { room: "all" }, (response) => {
-    //   if (response === "success") {
-    //     setSenderRoom('"all"');
-    //     // console.log("it success");
-    //   }
-    // });
-
-    return () => {
-      socket.off("connect", onConnect);
-      socket.off("disconnect", onDisconnect);
-      socket.off("roomMessage", onRoomMessage);
-      socket.off("changeMemeber", onChangeMember);
-    };
-    // eslint-disable-next-line react-hooks/exhaustive-deps
+    websocketService = new WebSocketService();
+    websocketService.init(
+      "ws://localhost:8080",
+      setSenderRoom,
+      setMemeberQuantity,
+      setListMessage
+    );
   }, []);
 
-  // const handleMessageInput = (e) => {
-  //   // console.log(value);
-  //   setSenderMessage(e.target.value);
-  // };
-
-  const test = () => {
-    ws.send("Hello Server!");
-  }
-
   const handleJoinRoom = () => {
-    if (inputRoom !== "") {
-      socket.emit("join", { room: inputRoom }, (response) => {
-        if (response === "success") {
-          setSenderRoom(`${inputRoom}`);
-          console.log("join success");
-        }
-      });
+    if (inputRoom.current.value !== "") {
+      websocketService.joinRoom(inputRoom.current.value);
     }
   };
 
   const handleLeaveRoom = () => {
     if (senderRoom !== null) {
-      socket.emit("leave", { room: senderRoom }, (response) => {
-        if (response === "success") {
-          setSenderRoom(null);
-          console.log("leave success");
-        }
-      });
+      websocketService.leaveRoom(senderRoom);
     }
-  };
-  // const handleNameInput = (name) => {
-  //   setSenderName(name);
-  //   // console.log(name);
-  // };
-
-  const handleRoomInput = (room) => {
-    // console.log(room);
-    setInputRoom(room);
   };
 
   const handleSendMessage = (e) => {
-    // console.log(inputRef.current.value)
+    const data = {
+      type: "message_room",
+      room: `${senderRoom}`,
+      sender: `${senderNameRef.current.value}`,
+      message: `${senderMessageRef.current.value}`,
+    };
 
-    socket.emit(
-      "message",
-      {
-        room: `${senderRoom}`,
-        name: `${senderNameRef.current.value}`,
-        message: `${senderMessageRef.current.value}`,
-      },
-      (response) => {
-        if (response === "success") {
-          console.log("send success");
-          senderMessageRef.current.value = null;
-        } else {
-          handleJoinRoom();
-          socket.emit("message", {
-            room: `${senderRoom}`,
-            name: `${senderNameRef.current.value}`,
-            message: `${senderMessageRef.current.value}`,
-          });
-        }
-      }
-    );
+    websocketService.sendMessageRoom(data);
   };
 
   const handleEnterMessage = (e) => {
@@ -153,6 +70,16 @@ const ChatRoomPage = () => {
     }
   };
 
+  const test = () => {
+    // console.log("test");
+    websocketService.ws.send(
+      JSON.stringify({
+        type: "message_all",
+        name: "quan",
+      })
+    );
+  };
+
   return (
     <Box sx={{ bgcolor: "#262626", height: "100vh" }}>
       <Stack>
@@ -167,14 +94,14 @@ const ChatRoomPage = () => {
         >
           <PeopleIcon
             sx={{
-              fontSize: 30,
+              fontSize: 20,
               color: "#f3f3f3",
               marginBottom: -0.4,
               cursor: "pointer",
             }}
           />{" "}
           <Typography
-            fontSize={20}
+            fontSize={14}
             fontWeig={600}
             color="white"
             sx={{
@@ -191,7 +118,12 @@ const ChatRoomPage = () => {
             <Stack spacing={1}>
               {listMessage?.map((messageData) => {
                 // console.log(messageData);
-                return <Message data={messageData} senderMessageRef={senderMessageRef}></Message>;
+                return (
+                  <Message
+                    data={messageData}
+                    senderMessageRef={senderMessageRef}
+                  ></Message>
+                );
               })}
               .
             </Stack>
@@ -245,12 +177,13 @@ const ChatRoomPage = () => {
                   <input
                     className={styles.messageInput}
                     placeholder="Phòng"
-                    onChange={(e) => {
-                      handleRoomInput(e.target.value);
-                    }}
+                    // onChange={(e) => {
+                    //   handleRoomInput(e.target.value);
+                    // }}
                     onKeyDown={(e) => {
                       handleEnterRoom(e);
                     }}
+                    ref={inputRoom}
                   />
                 </Box>
                 <button
@@ -259,6 +192,13 @@ const ChatRoomPage = () => {
                   }}
                 >
                   Join room
+                </button>
+                <button
+                  onClick={() => {
+                    test();
+                  }}
+                >
+                  test
                 </button>
               </>
             ) : (
