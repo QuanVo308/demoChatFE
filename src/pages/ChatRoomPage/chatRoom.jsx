@@ -1,4 +1,4 @@
-import { socket } from "../../services/socket";
+import { socket } from "../../services/socketIO";
 import styles from "./chatRoom.module.css";
 import React, { useEffect, useState, useRef } from "react";
 import Stack from "@mui/material/Stack";
@@ -7,6 +7,9 @@ import SendIcon from "@mui/icons-material/Send";
 import Message from "../../components/ChatMessage/messageComponent";
 import PeopleIcon from "@mui/icons-material/People";
 import Typography from "@mui/material/Typography";
+
+const ws = new WebSocket('ws://localhost:8090');
+
 
 const sampleMessage = {
   sender: "Person 1",
@@ -47,6 +50,10 @@ const ChatRoomPage = () => {
     socket.on("roomMessage", onRoomMessage);
     socket.on("changeMemeber", onChangeMember);
 
+    ws.addEventListener("message", (event) => {
+      console.log("Message from server ", event.data);
+    });
+
     // socket.emit("join", { room: "all" }, (response) => {
     //   if (response === "success") {
     //     setSenderRoom('"all"');
@@ -67,6 +74,10 @@ const ChatRoomPage = () => {
   //   // console.log(value);
   //   setSenderMessage(e.target.value);
   // };
+
+  const test = () => {
+    ws.send("Hello Server!");
+  }
 
   const handleJoinRoom = () => {
     if (inputRoom !== "") {
