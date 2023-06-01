@@ -39,7 +39,7 @@ export default function Message(props) {
   };
 
   return (
-    <Box>
+    <Box marginTop={1.5}>
       <Stack direction="row">
         <Avatar
           alt="Remy Sharp"

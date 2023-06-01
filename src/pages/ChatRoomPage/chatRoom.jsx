@@ -8,6 +8,7 @@ import Message from "../../components/ChatMessage/messageComponent";
 import PeopleIcon from "@mui/icons-material/People";
 import Typography from "@mui/material/Typography";
 import { WebSocketService } from "../../services/websocket.service";
+import _ from "lodash";
 
 // websocketService.init("ws://localhost:8080")
 var websocketService;
@@ -16,23 +17,37 @@ const ChatRoomPage = () => {
   const [senderRoom, setSenderRoom] = useState(null);
   const [memeberQuantity, setMemeberQuantity] = useState(0);
   const [listMessage, setListMessage] = useState([]);
+  const [scrollable, setScrollable] = useState(true);
   const senderMessageRef = useRef(null);
   const senderNameRef = useRef(null);
-  const inputRoom = useRef(null);
+  const inputRoomRef = useRef(null);
+  const messageEndRef = useRef(null);
+  const messageListdRef = useRef(null);
 
   useEffect(() => {
     websocketService = new WebSocketService();
     websocketService.init(
-      "ws://localhost:8080",
+      process.env.REACT_APP_SOCKET_SERVER,
       setSenderRoom,
       setMemeberQuantity,
       setListMessage
     );
   }, []);
 
+  const scrollToBottom = () => {
+    if (scrollable) {
+      messageEndRef.current?.scrollIntoView();
+    }
+  };
+
+  useEffect(() => {
+    scrollToBottom();
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [listMessage]);
+
   const handleJoinRoom = () => {
-    if (inputRoom.current.value !== "") {
-      websocketService.joinRoom(inputRoom.current.value);
+    if (inputRoomRef.current.value !== "") {
+      websocketService.joinRoom(inputRoomRef.current.value);
     }
   };
 
@@ -51,6 +66,7 @@ const ChatRoomPage = () => {
     };
 
     websocketService.sendMessageRoom(data);
+    senderMessageRef.current.value = null;
   };
 
   const handleEnterMessage = (e) => {
@@ -70,14 +86,19 @@ const ChatRoomPage = () => {
     }
   };
 
-  const test = () => {
-    // console.log("test");
-    websocketService.ws.send(
-      JSON.stringify({
-        type: "message_all",
-        name: "quan",
-      })
+  const handleScrollMessage = () => {
+    setScrollable(
+      messageListdRef.current.scrollHeight -
+        messageListdRef.current.scrollTop -
+        messageListdRef.current.clientHeight ===
+        0
     );
+  };
+
+  const throt_checkScroll = _.throttle(handleScrollMessage, 300);
+
+  const test = () => {
+    console.log(process.env.REACT_APP_SOCKET_SERVER);
   };
 
   return (
@@ -102,7 +123,7 @@ const ChatRoomPage = () => {
           />{" "}
           <Typography
             fontSize={14}
-            fontWeig={600}
+            fontWeight={600}
             color="white"
             sx={{
               paddingLeft: "4px",
@@ -114,44 +135,35 @@ const ChatRoomPage = () => {
         <Stack
           sx={{ height: "96vh", display: "flex", justifyContent: "flex-end" }}
         >
-          <Box margin="10px">
-            <Stack spacing={1}>
+          <Box margin="10px" sx={{ maxHeight: "100%" }}>
+            <div
+              className={styles.messageList}
+              ref={messageListdRef}
+              onScroll={() => throt_checkScroll()}
+            >
               {listMessage?.map((messageData) => {
-                // console.log(messageData);
                 return (
                   <Message
                     data={messageData}
                     senderMessageRef={senderMessageRef}
+                    key={messageData + Math.random()}
                   ></Message>
                 );
               })}
-              .
-            </Stack>
+              <div ref={messageEndRef}></div>
+            </div>
           </Box>
-          <Stack direction="row">
+          <Stack direction="row" sx={{ height: "3.5vh" }}>
             <input
               className={styles.nameInput}
               placeholder="Tên"
               ref={senderNameRef}
-              // value={senderNameRef.current.value}
-              // onChange={(e) => {
-              //   handleNameInput(e.target.value);
-              // }}
             />
-            <Box
-              width="80%"
-              // bgcolor={"white"}
-              marginRight={"10px"}
-              marginLeft={"10px"}
-            >
+            <Box width="80%" marginRight={"10px"} marginLeft={"10px"}>
               <input
                 className={styles.messageInput}
                 placeholder="Tin nhắn"
                 ref={senderMessageRef}
-                // value={senderMessage}
-                // onChange={(e) => {
-                //   handleMessageInput(e);
-                // }}
                 onKeyDown={(e) => {
                   handleEnterMessage(e);
                 }}
@@ -183,7 +195,7 @@ const ChatRoomPage = () => {
                     onKeyDown={(e) => {
                       handleEnterRoom(e);
                     }}
-                    ref={inputRoom}
+                    ref={inputRoomRef}
                   />
                 </Box>
                 <button
