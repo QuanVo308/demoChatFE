@@ -1,16 +1,20 @@
 
 
 export class WebSocketService {
+    messageMaxQuantity
     roomQuantity
     ws
     setRoom
     setQuantity
     setListMessage
 
+
     init(host, _setRoom, _setQuantity, _setListMessage) {
         this.setRoom = _setRoom
         this.setQuantity = _setQuantity
         this.setListMessage = _setListMessage
+
+        this.messageMaxQuantity = 10
 
         this.ws = new WebSocket(host);
         this.currentRoom = null
@@ -91,6 +95,7 @@ export class WebSocketService {
     newMessageRoom = (event) => {
         try {
             const data = JSON.parse(event.data)
+
             this.setListMessage((current) => [...current, data])
             this.setQuantity(data.quantity)
         } catch (e) {

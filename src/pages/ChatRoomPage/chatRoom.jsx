@@ -12,6 +12,7 @@ import _ from "lodash";
 
 // websocketService.init("ws://localhost:8080")
 var websocketService;
+const messageDefaultQuantity = 30;
 
 const ChatRoomPage = () => {
   const [senderRoom, setSenderRoom] = useState(null);
@@ -37,6 +38,7 @@ const ChatRoomPage = () => {
   const scrollToBottom = () => {
     if (scrollable.value) {
       messageEndRef.current?.scrollIntoView();
+      handleReduceMessage()
     }
   };
 
@@ -57,6 +59,19 @@ const ChatRoomPage = () => {
     }
   };
 
+  const handleReduceMessage = () => {
+    if (scrollable) {
+      const end_idx = Math.min(listMessage.length, messageDefaultQuantity);
+      const start_idx = Math.max(1, end_idx - messageDefaultQuantity);
+      if (listMessage.length > end_idx) {
+        setListMessage((current) => {
+          return current.slice(start_idx, end_idx + 2);
+        });
+      }
+      // listMessage = listMessage.slice(start_idx, end_idx + 1)
+    }
+  };
+
   const handleSendMessage = (e) => {
     const data = {
       type: "message_room",
@@ -66,10 +81,12 @@ const ChatRoomPage = () => {
           ? "annonymous"
           : `${senderNameRef.current.value}`,
       message: `${senderMessageRef.current.value}`,
+      messageId: Math.floor(Math.random() * 10 ** 10).toString(16),
     };
     setScrollable({ value: true });
     websocketService.sendMessageRoom(data);
     senderMessageRef.current.value = null;
+    console.log(listMessage);
   };
 
   const handleEnterMessage = (e) => {
@@ -81,6 +98,7 @@ const ChatRoomPage = () => {
         handleSendMessage(e);
       }
     }
+    handleReduceMessage()
   };
 
   const handleEnterRoom = (e) => {
@@ -101,10 +119,10 @@ const ChatRoomPage = () => {
     }
   };
 
-  // const throt_checkScroll = _.throttle(handleScrollMessage, 100);
+  const throt_checkScroll = _.throttle(handleScrollMessage, 100);
 
   const test = () => {
-    console.log(process.env.REACT_APP_SOCKET_SERVER);
+    console.log("test");
   };
 
   return (
@@ -145,15 +163,15 @@ const ChatRoomPage = () => {
             <div
               className={styles.messageList}
               ref={messageListdRef}
-              onWheel={() => handleScrollMessage()}
+              onWheel={() => throt_checkScroll()}
               // onWheel={(e) => test_wheel(e)}
             >
-              {listMessage?.map((messageData, idx) => {
+              {listMessage?.map((messageData) => {
                 return (
                   <Message
                     data={messageData}
                     senderMessageRef={senderMessageRef}
-                    key={idx}
+                    key={messageData.messageId}
                   ></Message>
                 );
               })}
@@ -212,19 +230,19 @@ const ChatRoomPage = () => {
                 >
                   Join room
                 </button>
-                <button
-                  onClick={() => {
-                    test();
-                  }}
-                >
-                  test
-                </button>
               </>
             ) : (
               <button onClick={handleLeaveRoom}>
                 Leave room "{senderRoom}"
               </button>
             )}
+            <button
+              onClick={() => {
+                test();
+              }}
+            >
+              test
+            </button>
           </Stack>
         </Stack>
       </Stack>

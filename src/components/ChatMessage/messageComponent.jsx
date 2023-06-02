@@ -36,6 +36,7 @@ export default function Message(props) {
   const handleTag = (e) => {
     console.log(e);
     props.senderMessageRef.current.value += `[[${e}]]`;
+    props.senderMessageRef.current.focus();
   };
 
   return (
