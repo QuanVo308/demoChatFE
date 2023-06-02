@@ -17,7 +17,7 @@ const ChatRoomPage = () => {
   const [senderRoom, setSenderRoom] = useState(null);
   const [memeberQuantity, setMemeberQuantity] = useState(0);
   const [listMessage, setListMessage] = useState([]);
-  const [scrollable, setScrollable] = useState(true);
+  const [scrollable, setScrollable] = useState({ value: true });
   const senderMessageRef = useRef(null);
   const senderNameRef = useRef(null);
   const inputRoomRef = useRef(null);
@@ -35,7 +35,7 @@ const ChatRoomPage = () => {
   }, []);
 
   const scrollToBottom = () => {
-    if (scrollable) {
+    if (scrollable.value) {
       messageEndRef.current?.scrollIntoView();
     }
   };
@@ -61,10 +61,13 @@ const ChatRoomPage = () => {
     const data = {
       type: "message_room",
       room: `${senderRoom}`,
-      sender: `${senderNameRef.current.value}`,
+      sender:
+        senderNameRef.current.value === ""
+          ? "annonymous"
+          : `${senderNameRef.current.value}`,
       message: `${senderMessageRef.current.value}`,
     };
-
+    setScrollable({ value: true });
     websocketService.sendMessageRoom(data);
     senderMessageRef.current.value = null;
   };
@@ -87,15 +90,18 @@ const ChatRoomPage = () => {
   };
 
   const handleScrollMessage = () => {
-    setScrollable(
+    const check =
       messageListdRef.current.scrollHeight -
         messageListdRef.current.scrollTop -
-        messageListdRef.current.clientHeight ===
-        0
-    );
+        messageListdRef.current.clientHeight <
+      40;
+    if (check !== scrollable.value) {
+      // setScrollable(check);
+      scrollable.value = check;
+    }
   };
 
-  const throt_checkScroll = _.throttle(handleScrollMessage, 300);
+  // const throt_checkScroll = _.throttle(handleScrollMessage, 100);
 
   const test = () => {
     console.log(process.env.REACT_APP_SOCKET_SERVER);
@@ -139,21 +145,22 @@ const ChatRoomPage = () => {
             <div
               className={styles.messageList}
               ref={messageListdRef}
-              onScroll={() => throt_checkScroll()}
+              onWheel={() => handleScrollMessage()}
+              // onWheel={(e) => test_wheel(e)}
             >
-              {listMessage?.map((messageData) => {
+              {listMessage?.map((messageData, idx) => {
                 return (
                   <Message
                     data={messageData}
                     senderMessageRef={senderMessageRef}
-                    key={messageData + Math.random()}
+                    key={idx}
                   ></Message>
                 );
               })}
               <div ref={messageEndRef}></div>
             </div>
           </Box>
-          <Stack direction="row" sx={{ height: "3.5vh" }}>
+          <Stack direction="row">
             <input
               className={styles.nameInput}
               placeholder="Tên"
