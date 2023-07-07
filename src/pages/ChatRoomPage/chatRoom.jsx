@@ -9,6 +9,11 @@ import PeopleIcon from "@mui/icons-material/People";
 import Typography from "@mui/material/Typography";
 import { WebSocketService } from "../../services/websocket.service";
 import _ from "lodash";
+import {
+  GoogleLogin,
+  GoogleOAuthProvider,
+} from "@react-oauth/google";
+import jwt_decode from "jwt-decode";
 
 // websocketService.init("ws://localhost:8080")
 var websocketService;
@@ -20,25 +25,29 @@ const ChatRoomPage = () => {
   const [listMessage, setListMessage] = useState([]);
   const [scrollable, setScrollable] = useState({ value: true });
   const senderMessageRef = useRef(null);
-  const senderNameRef = useRef(null);
-  const inputRoomRef = useRef(null);
   const messageEndRef = useRef(null);
   const messageListdRef = useRef(null);
+  const currentURL = new URL(window.location.href);
+  const currentRoom = currentURL.pathname.slice(1).split("/")[2];
+  const [userToken, setUserToken] = useState(null);
 
   useEffect(() => {
     websocketService = new WebSocketService();
+
     websocketService.init(
-      process.env.REACT_APP_SOCKET_SERVER,
+      `ws://${process.env.REACT_APP_SOCKET_HOST}/api/room/${currentRoom}/websocket`,
       setSenderRoom,
       setMemeberQuantity,
       setListMessage
     );
+    setSenderRoom(currentRoom);
+    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, []);
 
   const scrollToBottom = () => {
     if (scrollable.value) {
       messageEndRef.current?.scrollIntoView();
-      handleReduceMessage()
+      handleReduceMessage();
     }
   };
 
@@ -46,18 +55,6 @@ const ChatRoomPage = () => {
     scrollToBottom();
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [listMessage]);
-
-  const handleJoinRoom = () => {
-    if (inputRoomRef.current.value !== "") {
-      websocketService.joinRoom(inputRoomRef.current.value);
-    }
-  };
-
-  const handleLeaveRoom = () => {
-    if (senderRoom !== null) {
-      websocketService.leaveRoom(senderRoom);
-    }
-  };
 
   const handleReduceMessage = () => {
     if (scrollable) {
@@ -76,10 +73,8 @@ const ChatRoomPage = () => {
     const data = {
       type: "message_room",
       room: `${senderRoom}`,
-      sender:
-        senderNameRef.current.value === ""
-          ? "annonymous"
-          : `${senderNameRef.current.value}`,
+      senderName: userToken.name === "" ? "annonymous" : `${userToken.name}`,
+      senderAva: userToken.picture,
       message: `${senderMessageRef.current.value}`,
       messageId: Math.floor(Math.random() * 10 ** 10).toString(16),
     };
@@ -91,20 +86,11 @@ const ChatRoomPage = () => {
 
   const handleEnterMessage = (e) => {
     if (e.key === "Enter") {
-      if (
-        senderMessageRef.current.value !== null &&
-        senderNameRef.current.value !== null
-      ) {
+      if (senderMessageRef.current.value !== "") {
         handleSendMessage(e);
       }
     }
-    handleReduceMessage()
-  };
-
-  const handleEnterRoom = (e) => {
-    if (e.key === "Enter") {
-      handleJoinRoom();
-    }
+    handleReduceMessage();
   };
 
   const handleScrollMessage = () => {
@@ -122,7 +108,8 @@ const ChatRoomPage = () => {
   const throt_checkScroll = _.throttle(handleScrollMessage, 100);
 
   const test = () => {
-    console.log("test");
+    // let currentDate = new Date();
+    setUserToken(null);
   };
 
   return (
@@ -164,7 +151,6 @@ const ChatRoomPage = () => {
               className={styles.messageList}
               ref={messageListdRef}
               onWheel={() => throt_checkScroll()}
-              // onWheel={(e) => test_wheel(e)}
             >
               {listMessage?.map((messageData) => {
                 return (
@@ -179,70 +165,68 @@ const ChatRoomPage = () => {
             </div>
           </Box>
           <Stack direction="row">
-            <input
-              className={styles.nameInput}
-              placeholder="Tên"
-              ref={senderNameRef}
-            />
-            <Box width="80%" marginRight={"10px"} marginLeft={"10px"}>
-              <input
-                className={styles.messageInput}
-                placeholder="Tin nhắn"
-                ref={senderMessageRef}
-                onKeyDown={(e) => {
-                  handleEnterMessage(e);
-                }}
-              />
-            </Box>
-            <SendIcon
+            <Box
               sx={{
-                fontSize: 30,
-                paddingRight: 1,
-                color: "#f3f3f3",
-                marginBottom: -0.4,
-                cursor: "pointer",
-              }}
-              onClick={() => {
-                if (senderMessageRef.current.value !== null) {
-                  handleSendMessage();
-                }
-              }}
-            />
-            {senderRoom === null ? (
-              <>
-                <Box width="5%" marginRight={"10px"} marginLeft={"10px"}>
-                  <input
-                    className={styles.messageInput}
-                    placeholder="Phòng"
-                    // onChange={(e) => {
-                    //   handleRoomInput(e.target.value);
-                    // }}
-                    onKeyDown={(e) => {
-                      handleEnterRoom(e);
-                    }}
-                    ref={inputRoomRef}
-                  />
-                </Box>
-                <button
-                  onClick={() => {
-                    handleJoinRoom();
-                  }}
-                >
-                  Join room
-                </button>
-              </>
-            ) : (
-              <button onClick={handleLeaveRoom}>
-                Leave room "{senderRoom}"
-              </button>
-            )}
-            <button
-              onClick={() => {
-                test();
+                bgcolor: "rgba(255, 255, 255, 0.322)",
+                width: "100%",
+                display: "flex",
+                justifyContent: "center",
+                paddingBottom: "2px",
               }}
             >
-              test
-            </button>
+              {userToken === null ? (
+                <GoogleOAuthProvider clientId="647320167649-rul88b2pdip6s6qhmiap1ceqb1977ih4.apps.googleusercontent.com">
+                  <GoogleLogin
+                    onSuccess={(credentialResponse) => {
+                      console.log(credentialResponse.credential);
+                      const credential = jwt_decode(
+                        credentialResponse.credential
+                      );
+                      console.log(credential);
+                      setUserToken(credential);
+                    }}
+                    onError={() => {
+                      console.log("Login Failed");
+                    }}
+                    useOneTap
+                  />
+                </GoogleOAuthProvider>
+              ) : (
+                <>
+                  <Box width="80%" marginRight={"10px"} marginLeft={"10px"}>
+                    <input
+                      className={styles.messageInput}
+                      placeholder="Tin nhắn"
+                      ref={senderMessageRef}
+                      onKeyDown={(e) => {
+                        handleEnterMessage(e);
+                      }}
+                    />
+                  </Box>
+                  <SendIcon
+                    sx={{
+                      fontSize: 30,
+                      paddingRight: 1,
+                      color: "#f3f3f3",
+                      marginBottom: -0.4,
+                      cursor: "pointer",
+                    }}
+                    onClick={() => {
+                      if (senderMessageRef.current.value !== null) {
+                        handleSendMessage();
+                      }
+                    }}
+                  />
+                </>
+              )}
+              <button
+                onClick={() => {
+                  test();
+                }}
+              >
+                test
+              </button>
+            </Box>
           </Stack>
         </Stack>
       </Stack>

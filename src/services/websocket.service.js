@@ -4,13 +4,11 @@ export class WebSocketService {
     messageMaxQuantity
     roomQuantity
     ws
-    setRoom
     setQuantity
     setListMessage
 
 
     init(host, _setRoom, _setQuantity, _setListMessage) {
-        this.setRoom = _setRoom
         this.setQuantity = _setQuantity
         this.setListMessage = _setListMessage
 
@@ -53,26 +51,29 @@ export class WebSocketService {
 
         try {
             switch (data.type) {
-                case 'response_join_room':
-                    console.log("response_join_room")
-                    this.joinRoomResponse(event)
-                    break;
-                case 'response_leave_room':
-                    console.log("response_leave_room")
-                    this.leaveRoomResponse(event)
-                    break;
-                case "room_quantity_update":
-                    console.log("room_quantity_update")
-                    this.updateRoomQuantity(event)
-                    break;
-                case "response_message_room":
-                    this.errorMessageRoom(event)
-                    break;
+                // case 'response_join_room':
+                //     console.log("response_join_room")
+                //     this.joinRoomResponse(event)
+                //     break;
+                // case 'response_leave_room':
+                //     console.log("response_leave_room")
+                //     this.leaveRoomResponse(event)
+                //     break;
+                // case "room_quantity_update":
+                //     console.log("room_quantity_update")
+                //     this.updateRoomQuantity(event)
+                //     break;
+                // case "response_message_room":
+                //     this.errorMessageRoom(event)
+                //     break;
                 case "message_room":
                     this.newMessageRoom(event)
                     break;
+                // case "authenticated_error":
+                //     this.newMessageRoom(event)
+                //     break;
                 default:
-                    console.log('Not valid action type', data)
+                    // console.log('Not valid action type', data)
                     break;
             }
         } catch (e) {
@@ -82,15 +83,15 @@ export class WebSocketService {
     }
 
 
-    errorMessageRoom = (event) => {
-        try {
-            const data = JSON.parse(event.data)
-            console.log(data)
+    // errorMessageRoom = (event) => {
+    //     try {
+    //         const data = JSON.parse(event.data)
+    //         console.log(data)
 
-        } catch (e) {
-            console.log('error room update', e)
-        }
-    }
+    //     } catch (e) {
+    //         console.log('error room update', e)
+    //     }
+    // }
 
     newMessageRoom = (event) => {
         try {
@@ -111,61 +112,57 @@ export class WebSocketService {
         }
     }
 
-    updateRoomQuantity = (event) => {
-        try {
-            const data = JSON.parse(event.data)
-            this.setQuantity(data.quantity)
+    // updateRoomQuantity = (event) => {
+    //     try {
+    //         const data = JSON.parse(event.data)
+    //         this.setQuantity(data.quantity)
 
-        } catch (e) {
-            console.log('Update room quantity', e)
-        }
-    }
+    //     } catch (e) {
+    //         console.log('Update room quantity', e)
+    //     }
+    // }
 
-    leaveRoom = (roomCode) => {
-        this.ws.send(JSON.stringify({
-            type: "leave_room",
-            room: `${roomCode}`
-        }))
-    }
+    // leaveRoom = (roomCode) => {
+    //     this.ws.send(JSON.stringify({
+    //         type: "leave_room",
+    //         room: `${roomCode}`
+    //     }))
+    // }
 
-    leaveRoomResponse = (event) => {
-        try {
-            const data = JSON.parse(event.data)
-            if (data.status === 'success') {
-                this.setRoom(null)
-            }
+    // leaveRoomResponse = (event) => {
+    //     try {
+    //         const data = JSON.parse(event.data)
+    //         if (data.status === 'success') {
+    //             this.setRoom(null)
+    //         }
 
-        } catch (e) {
-            console.log('Leave room response', e)
-        }
+    //     } catch (e) {
+    //         console.log('Leave room response', e)
+    //     }
 
-    }
+    // }
 
-    joinRoomResponse = (event) => {
-        try {
-            const data = JSON.parse(event.data)
-            if (data.status === 'success') {
-                this.setRoom(data.room)
-            }
+    // joinRoomResponse = (event) => {
+    //     try {
+    //         const data = JSON.parse(event.data)
+    //         if (data.status === 'success') {
+    //             this.setRoom(data.room)
+    //         }
 
-        } catch (e) {
-            console.log('Join room response', e)
-        }
+    //     } catch (e) {
+    //         console.log('Join room response', e)
+    //     }
 
-    }
+    // }
 
-    joinRoom = (roomCode) => {
-        this.ws.send(JSON.stringify({
-            type: "join_room",
-            room: `${roomCode}`
-        }))
-    }
+    // joinRoom = (roomCode) => {
+    //     this.ws.send(JSON.stringify({
+    //         type: "join_room",
+    //         room: `${roomCode}`
+    //     }))
+    // }
 
 
 
 }
-
-// export const ws = new WebSocket('ws://localhost:8080', {
-//     perMessageDeflate: false
-// });
 

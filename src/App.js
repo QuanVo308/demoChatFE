@@ -10,7 +10,7 @@ function App() {
 
   return (
     <Routes>
-      <Route path="/" element={<ChatRoomPage />} />
+      <Route path="/chat/room/*" element={<ChatRoomPage />} />
     </Routes>
   );
 }
