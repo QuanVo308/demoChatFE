@@ -6,12 +6,16 @@ export class WebSocketService {
     ws
     setQuantity
     setListMessage
+    closeSocket
+    userToken
+    handleLogout
 
 
-    init(host, _setRoom, _setQuantity, _setListMessage) {
+    init(host, _setRoom, _setQuantity, _setListMessage, _handleLogout) {
         this.setQuantity = _setQuantity
         this.setListMessage = _setListMessage
-
+        this.handleLogout = _handleLogout
+        this.closeSocket = false
         this.messageMaxQuantity = 10
 
         this.ws = new WebSocket(host);
@@ -19,19 +23,23 @@ export class WebSocketService {
 
         const thisClass = this
 
+
         this.ws.addEventListener("open", function (event) {
             // websocketService.ws.send('Hello Server!');
-            console.log("connect", event);
+            // console.log("connect", event);
+            thisClass.handleLogin(thisClass.userToken)
         });
         this.ws.addEventListener("close", function (event) {
             // this.ws.send('Hello Server!');
-            thisClass.reConnect(host, _setRoom, _setQuantity, _setListMessage)
-            console.log("close", event);
+            if (!thisClass.closeSocket) {
+                thisClass.reConnect(host, _setRoom, _setQuantity, _setListMessage, thisClass.userToken)
+            }
+            // console.log("close", event);
         });
 
         this.ws.addEventListener("error", function (event) {
             // this.ws.send('Hello Server!');
-            console.log("error", event);
+            // console.log("error", event);
         });
 
         this.ws.addEventListener("message", function (event) {
@@ -40,10 +48,14 @@ export class WebSocketService {
             thisClass.handleEventMessage(event)
         });
     }
+    setUserToken = (_userToken) => {
+        this.userToken = _userToken || null
+        this.handleLogin(_userToken)
+    }
 
-    reConnect = (host, _setRoom, _setQuantity, _setListMessage) => {
+    reConnect = (host, _setRoom, _setQuantity, _setListMessage, _userToken) => {
         console.log('reconnect')
-        this.init(host, _setRoom, _setQuantity, _setListMessage)
+        this.init(host, _setRoom, _setQuantity, _setListMessage, _userToken)
     }
 
     handleEventMessage = (event) => {
@@ -68,6 +80,10 @@ export class WebSocketService {
                 //     break;
                 case "message_room":
                     this.newMessageRoom(event)
+                    break;
+
+                case "authen_error":
+                    this.handleLogout()
                     break;
                 // case "authenticated_error":
                 //     this.newMessageRoom(event)
@@ -100,7 +116,21 @@ export class WebSocketService {
             this.setListMessage((current) => [...current, data])
             this.setQuantity(data.quantity)
         } catch (e) {
-            console.log('message room update', e)
+            console.log('error message room update', e)
+        }
+    }
+
+    handleLogin = (userToken) => {
+        console.log('login', userToken)
+        try {
+            if (userToken !== null && userToken !== undefined) {
+                this.ws.send(JSON.stringify({
+                    type: 'login',
+                    token: userToken
+                }))
+            }
+        } catch (e) {
+            console.log('Login error', e)
         }
     }
 
@@ -108,8 +138,13 @@ export class WebSocketService {
         try {
             this.ws.send(JSON.stringify(data))
         } catch (e) {
-            console.log('Send message room', e)
+            // console.log('Send message room', e)
         }
+    }
+
+    closeConnection = () => {
+        this.closeSocket = true
+        this.ws.close()
     }
 
     // updateRoomQuantity = (event) => {

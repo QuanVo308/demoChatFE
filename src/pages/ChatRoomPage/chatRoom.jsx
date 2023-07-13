@@ -9,12 +9,10 @@ import PeopleIcon from "@mui/icons-material/People";
 import Typography from "@mui/material/Typography";
 import { WebSocketService } from "../../services/websocket.service";
 import _ from "lodash";
-import {
-  GoogleLogin,
-  GoogleOAuthProvider,
-} from "@react-oauth/google";
+import { GoogleLogin, GoogleOAuthProvider } from "@react-oauth/google";
 import jwt_decode from "jwt-decode";
-
+import Cookies from "universal-cookie";
+//
 // websocketService.init("ws://localhost:8080")
 var websocketService;
 const messageDefaultQuantity = 30;
@@ -30,19 +28,38 @@ const ChatRoomPage = () => {
   const currentURL = new URL(window.location.href);
   const currentRoom = currentURL.pathname.slice(1).split("/")[2];
   const [userToken, setUserToken] = useState(null);
+  const cookies = new Cookies();
 
   useEffect(() => {
+    try {
+      websocketService.closeConnection();
+    } catch {}
+    try {
+      console.log("check credential", cookies.get("userCredential"));
+      if (cookies.get("userCredential")) {
+        console.log("set credential", cookies.get("userCredential"));
+        setUserToken(cookies.get("userCredential"));
+      }
+    } catch {}
     websocketService = new WebSocketService();
 
     websocketService.init(
       `ws://${process.env.REACT_APP_SOCKET_HOST}/api/room/${currentRoom}/websocket`,
       setSenderRoom,
       setMemeberQuantity,
-      setListMessage
+      setListMessage,
+      handleLogout
     );
     setSenderRoom(currentRoom);
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, []);
+
+  useState(() => {
+    try {
+      console.log('check', cookies.get('userCredential'))
+      websocketService.setUserToken(cookies.get('userCredential'));
+    } catch {}
+  }, [userToken]);
 
   const scrollToBottom = () => {
     if (scrollable.value) {
@@ -109,8 +126,28 @@ const ChatRoomPage = () => {
 
   const test = () => {
     // let currentDate = new Date();
-    setUserToken(null);
+    // setUserToken(null);
+    // websocketService.closeConnection();
+    // cookies.remove("userCredential");
+    console.log(userToken);
   };
+  const logout = () => {
+    setUserToken(null);
+    cookies.remove("userCredential");
+  };
+
+
+  const handleLoginSuccess = (credentialResponse) => {
+    const credential = jwt_decode(credentialResponse.credential);
+    setUserToken(credential);
+    cookies.set("userCredential", credential);
+    websocketService.handleLogin(credentialResponse.credential);
+  };
+
+  const handleLogout = () => {
+    setUserToken(null);
+    cookies.remove("userCredential");
+  }
 
   return (
     <Box sx={{ bgcolor: "#262626", height: "100vh" }}>
@@ -174,17 +211,12 @@ const ChatRoomPage = () => {
                 paddingBottom: "2px",
               }}
             >
-              {userToken === null ? (
-                <GoogleOAuthProvider clientId="647320167649-rul88b2pdip6s6qhmiap1ceqb1977ih4.apps.googleusercontent.com">
+              {cookies.get("userCredential") === undefined ? (
+                <GoogleOAuthProvider
+                  clientId={process.env.REACT_APP_GOOGLE_AUTH_CLIENT_ID}
+                >
                   <GoogleLogin
-                    onSuccess={(credentialResponse) => {
-                      console.log(credentialResponse.credential);
-                      const credential = jwt_decode(
-                        credentialResponse.credential
-                      );
-                      console.log(credential);
-                      setUserToken(credential);
-                    }}
+                    onSuccess={handleLoginSuccess}
                     onError={() => {
                       console.log("Login Failed");
                     }}
@@ -225,6 +257,13 @@ const ChatRoomPage = () => {
                 }}
               >
                 test
+              </button>
+              <button
+                onClick={() => {
+                  logout();
+                }}
+              >
+                logout
               </button>
             </Box>
           </Stack>
