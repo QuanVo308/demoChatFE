@@ -120,17 +120,17 @@ export class WebSocketService {
         }
     }
 
-    handleLogin = (userToken) => {
-        console.log('login', userToken)
+    handleLogin = async (userToken) => {
         try {
             if (userToken !== null && userToken !== undefined) {
-                this.ws.send(JSON.stringify({
+                const data = await JSON.stringify({
                     type: 'login',
                     token: userToken
-                }))
+                })
+                this.ws.send(data)
             }
         } catch (e) {
-            console.log('Login error', e)
+            console.log('Login error')
         }
     }
 
