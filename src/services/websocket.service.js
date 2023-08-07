@@ -82,8 +82,11 @@ export class WebSocketService {
                     this.newMessageRoom(event)
                     break;
 
-                case "authen_error":
+                case "login_error":
                     this.handleLogout()
+                    break;
+                case "login_success":
+                    console.log('login success')
                     break;
                 // case "authenticated_error":
                 //     this.newMessageRoom(event)
