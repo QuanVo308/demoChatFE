@@ -44,7 +44,7 @@ export default function Message(props) {
       <Stack direction="row">
         <Avatar
           alt="Remy Sharp"
-          src={props.data.senderAva}
+          src={props.data.avatar_url}
           sx={{ width: 26, height: 26 }}
         />
         <Box paddingLeft={"10px"}>
@@ -55,7 +55,7 @@ export default function Message(props) {
                 handleTag(e.currentTarget.textContent.slice(0, -2));
               }}
             >
-              {props.data.senderName}:{" "}
+              {props.data.name}:{" "}
             </span>
 
             {messageSet?.map((message, index) => {

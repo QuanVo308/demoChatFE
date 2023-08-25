@@ -10,7 +10,7 @@ function App() {
 
   return (
     <Routes>
-      <Route path="/chat/room/*" element={<ChatRoomPage />} />
+      <Route path="/vebotv/chat" element={<ChatRoomPage />} />
       <Route path="" element={
         <>
           <div>Kính gửi Quý khách hàng,</div>
